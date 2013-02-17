@@ -5,9 +5,17 @@ import json
 
 webapp = Flask(__name__)
 
+@webapp.before_request
+def before_request():
+    if not hasattr(webapp, 'store'):
+        print "creating new store"
+        store_config = webapp.config.store_config
+        store = webapp.config.store_class.configure_from_commandline(store_config)
+        webapp.store = store
+
 @webapp.route('/incidents/<seqnos>', methods=['PUT'])
 def save(seqnos):
-    print "saving %d" % seqnos
+    return seqnos
 
 def serve():
 
@@ -24,7 +32,9 @@ def serve():
 
     store = MongoIncidentStore.configure_from_commandline(options)
 
-    webapp.config.store = store
+    webapp.config.store_class = MongoIncidentStore
+    webapp.config.store_config = options
+
     webapp.run(host=options.host,
                port=options.port,
                debug=options.debug)

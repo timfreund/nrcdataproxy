@@ -17,8 +17,6 @@ class IncidentStore():
 
     @classmethod
     def configure_from_commandline(klass, options):
-        import pdb; pdb.set_trace()
-
         klass_options = klass.configuration_options().keys()
         kwargs = {}
         for option in dir(options):

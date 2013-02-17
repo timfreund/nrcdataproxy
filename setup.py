@@ -12,12 +12,16 @@ setup(
     url='http://bitbucket.com/timfreund/NRCDataProxy',
     install_requires=[
         'flask',
-        'pymongo'
+        'openpyxl',
+        'pymongo',
+        'xlrd',
                 ],
     packages=['nrcdataproxy'],
     include_package_data=True,
     entry_points="""
     [console_scripts]
     nrcdataproxy = nrcdataproxy:serve
+    nrcdata-etl-archive-download = nrcdataproxy.etl.bootstrap:spreadsheet_downloader
+    nrcdata-etl-archive-extractor = nrcdataproxy.etl.spreadsheet:extractor_command
     """,
 )
