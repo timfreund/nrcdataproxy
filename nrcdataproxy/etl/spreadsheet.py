@@ -71,7 +71,7 @@ class XlsExtractor(SpreadsheetExtractor):
                 value = datetime(*value).isoformat()
             elif cell.ctype == xlrd.XL_CELL_TEXT:
                 value = value.strip()
-            data[col_name] = value
+            data[col_name.lower()] = value
 
         try:
             sheet.cell(rowx+1, 0).value
@@ -80,16 +80,19 @@ class XlsExtractor(SpreadsheetExtractor):
             self.metadata['current_row'] = -1
 
         for name, columns in self.metadata['layout'][1:]:
-            detail_data = self.incident_details(name, columns, data['SEQNOS'])
+            detail_data = self.incident_details(name, columns, data['seqnos'])
 
             if detail_data.has_key('SEQNOS'):
                 del detail_data['SEQNOS']
 
             if name == 'INCIDENT_COMMONS':
                 for k, v in detail_data.items():
-                    data[k] = v
+                    data[k.lower()] = v
             else:
-                data[name] = detail_data
+                lname = name.lower()
+                data[lname] = {}
+                for k, v in detail_data.items():
+                    data[lname][k.lower()] = v
 
         return data
                 
@@ -113,7 +116,7 @@ class XlsExtractor(SpreadsheetExtractor):
                 elif cell.ctype == xlrd.XL_CELL_TEXT:
                     value = value.strip()
                         
-                data[col_name] = value
+                data[col_name.lower()] = value
             
         return data
 
@@ -134,17 +137,22 @@ class XlsxExtractor(SpreadsheetExtractor):
             name = sheet.title
             columns = []
             for x in range(0, len(sheet.column_dimensions.keys())):
-                columns.append(sheet.cell(row=0, column=x).value)
+                # CY11 has a null value in the last column of INCIDENT_DETAILS.
+                # We won't take any column that has a null header
+                if sheet.cell(row=0, column=x).value is not None:
+                    columns.append(sheet.cell(row=0, column=x).value)
 
-            if columns[0] == u' ':
-                columns[0] = u'SEQNOS'
+            if len(columns):
+                if columns[0] == u' ':
+                    columns[0] = u'SEQNOS'
 
-            sheet_keys = {}
-            for row, cell in enumerate(sheet.columns[0]):
-                sheet_keys[cell.value] = row
+                sheet_keys = {}
+                for row, cell in enumerate(sheet.columns[0]):
+                    sheet_keys[cell.value] = row
 
-            metadata['layout'].append((name, columns))
-            metadata['positions'][name] = sheet_keys
+                metadata['layout'].append((name, columns))
+                metadata['positions'][name] = sheet_keys
+
         return metadata
                 
     def next(self):
@@ -166,7 +174,7 @@ class XlsxExtractor(SpreadsheetExtractor):
                 value = None
             elif isinstance(value, unicode):
                 value = value.strip()
-            data[col_name] = value
+            data[col_name.lower()] = value
 
         if sheet.cell(row=rowx+1, column=0).value != None:
             self.metadata['current_row'] = rowx + 1
@@ -174,17 +182,16 @@ class XlsxExtractor(SpreadsheetExtractor):
             self.metadata['current_row'] = -1
 
         for name, columns in self.metadata['layout'][1:]:
-            detail_data = self.incident_details(name, columns, data['SEQNOS'])
+            detail_data = self.incident_details(name, columns, data['seqnos'])
 
             if detail_data.has_key('SEQNOS'):
                 del detail_data['SEQNOS']
 
             if name == 'INCIDENT_COMMONS':
                 for k, v in detail_data.items():
-                    data[k] = v
+                    data[k.lower()] = v
             else:
-                data[name] = detail_data
-
+                data[name.lower()] = detail_data
         return data
 
     def incident_details(self, sheet_name, columns, seqnos):
@@ -202,7 +209,7 @@ class XlsxExtractor(SpreadsheetExtractor):
                     value = None
                 elif isinstance(value, unicode):
                     value = value.strip()
-                data[col_name] = value
+                data[col_name.lower()] = value
         return data
         
 extractors = [
