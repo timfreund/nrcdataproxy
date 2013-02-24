@@ -14,6 +14,7 @@ setup(
         'flask',
         'openpyxl',
         'pymongo',
+        'requests',
         'xlrd',
                 ],
     packages=['nrcdataproxy'],
