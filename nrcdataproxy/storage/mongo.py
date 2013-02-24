@@ -18,9 +18,9 @@ class MongoIncidentStore(IncidentStore):
 
     def save(self, incident):
         r = {}
-        for k, v in record.items():
+        for k, v in incident.items():
             value = v
-            if k.count('DATE_') > 0:
+            if k.count('date_') > 0:
                 if v != '' and v is not None:
                     value = datetime.strptime(v, '%Y-%m-%dT%H:%M:%S')
             elif v == u'':
@@ -32,5 +32,5 @@ class MongoIncidentStore(IncidentStore):
 
             r[k.lower()] = value
                 
-        r['_id'] = int(record['SEQNOS'])
+        r['_id'] = int(incident['seqnos'])
         self.mongodb.incidents.insert(r)
