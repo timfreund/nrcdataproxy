@@ -15,7 +15,8 @@ def before_request():
 
 @webapp.route('/incidents/<seqnos>', methods=['PUT'])
 def save(seqnos):
-    return seqnos
+    webapp.store.save(request.json)
+    return "OK"
 
 def serve():
 
