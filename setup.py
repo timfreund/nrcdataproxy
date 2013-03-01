@@ -24,5 +24,6 @@ setup(
     nrcdataproxy = nrcdataproxy:serve
     nrcdata-etl-archive-download = nrcdataproxy.etl.bootstrap:spreadsheet_downloader
     nrcdata-etl-archive-extractor = nrcdataproxy.etl.spreadsheet:extractor_command
+    nrcdata-geocoder = nrcdataproxy.maintenance:geocode_command
     """,
 )

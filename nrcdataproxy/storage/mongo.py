@@ -3,12 +3,13 @@ from nrcdataproxy.storage import IncidentStore
 import pymongo
 
 class MongoIncidentStore(IncidentStore):
-    def __init__(self, mongohost, mongoport, database, **kw):
+    def __init__(self, mongohost='localhost', mongoport=27017, database='nrc', **kw):
         self.host = mongohost
         self.port = mongoport
         self.database_name = database
         self.mongo_server = pymongo.Connection(self.host, self.port)
         self.mongodb = self.mongo_server[self.database_name]
+        self.collection = self.mongodb.incidents
 
     @classmethod
     def configuration_options(klass):
@@ -21,7 +22,7 @@ class MongoIncidentStore(IncidentStore):
         for k, v in incident.items():
             value = v
             if k.count('date_') > 0:
-                if v != '' and v is not None:
+                if v != '' and v is not None and not isinstance(v, datetime):
                     value = datetime.strptime(v, '%Y-%m-%dT%H:%M:%S')
             elif v == u'':
                 value = None
@@ -33,4 +34,7 @@ class MongoIncidentStore(IncidentStore):
             r[k.lower()] = value
                 
         r['_id'] = int(incident['seqnos'])
-        self.mongodb.incidents.insert(r)
+        self.collection.save(r)
+
+    def find(self, **kw):
+        self.collection.find(**kw)
