@@ -25,7 +25,7 @@ def serve():
     parser.add_option(Option("--port", dest="port", default=5001, type="int"))
     parser.add_option(Option("--debug", dest="debug", default=False, action="store_true"))
 
-    from nrcdataproxy.storage.mongo import MongoIncidentStore
+    from nrcdataproxy.storage import MongoIncidentStore
     for option in MongoIncidentStore.commandline_options():
         parser.add_option(option)
 

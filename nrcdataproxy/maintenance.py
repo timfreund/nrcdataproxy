@@ -28,7 +28,7 @@ def geo_convert_dms_to_decimal(degrees, quadrant, minutes, seconds):
 
 def geocode_command():
     parser = OptionParser(usage="usage: %%prog [options]\n%s" % geocode_command.__doc__)
-    from nrcdataproxy.storage.mongo import MongoIncidentStore
+    from nrcdataproxy.storage import MongoIncidentStore
     for option in MongoIncidentStore.commandline_options():
         parser.add_option(option)
 
