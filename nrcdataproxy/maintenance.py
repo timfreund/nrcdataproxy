@@ -10,34 +10,15 @@ from optparse import Option, OptionParser
 # 3b. Geocode the address.  Record errors in geoloc_error, save the values to geoloc if successful
 # ... will need to define geocoder implemenations and geocoding limits per day per IP/authtoken
 
-def geo_convert_dms_to_decimal(degrees, minutes, seconds):
-    if isinstance(minutes, basestring):
-        minutes = int(minutes)
-
-    if isinstance(seconds, basestring):
-        seconds = int(seconds)
-
+def geo_convert_dms_to_decimal(degrees, quadrant, minutes, seconds):
     if seconds is None:
         seconds = 0
 
     hemisphere = 1
-    if isinstance(degrees, basestring):
-        degrees = degrees.upper()
-        for direction in ['S', 'W']:
-            if degrees.count(direction):
-                hemisphere = -1
-                degrees = degrees.replace(direction, '')
-        for direction in ['N', 'E']:
-            degrees = degrees.replace(direction, '')
-        degrees = int(degrees)
-
-    print "%d %d %d" % (degrees, minutes, seconds)
+    if quadrant.upper() in ['S', 'W']:
+        hemisphere = -1
 
     return (degrees + (minutes / 60.0) + (seconds / 3600.0)) * hemisphere
-    
-            
-
-        
 
 # 963678: 29N 16' 31" 88W 44' 31"
 # ... in google:  29 16' 31", -88 44' 31"
@@ -55,19 +36,24 @@ def geocode_command():
 
     store = MongoIncidentStore.configure_from_commandline(options)
     cursor = store.collection.find({'geoloc': None, 'geoloc_error': None, 'lat_deg': {'$ne': None}})
+    # ... need to redo things?  Try this one...
+    # cursor = store.collection.find({'geoloc': {'$ne': None}, 'lat_deg': {'$ne': None}})
 
     for doc in cursor:
-        print doc['seqnos']
-
         try:
-            latitude = geo_convert_dms_to_decimal(doc['lat_deg'],
-                                                  doc['lat_min'],
-                                                  doc['lat_sec'])
-            longitude = geo_convert_dms_to_decimal(doc['long_deg'],
-                                                   doc['long_min'],
-                                                   doc['long_sec'])
+            latitude = geo_convert_dms_to_decimal(int(doc['lat_deg']),
+                                                  doc['lat_quad'],
+                                                  int(doc['lat_min']),
+                                                  int(doc['lat_sec']))
+            longitude = geo_convert_dms_to_decimal(int(doc['long_deg']),
+                                                   doc['long_quad'],
+                                                   int(doc['long_min']),
+                                                   int(doc['long_sec']))
             doc['geoloc'] = [latitude, longitude]
+            print "%d: %f, %f" % (doc['seqnos'], latitude, longitude)
+
         except Exception, e:
+            print "%d: %s" % (doc['seqnos'], e.message)
             doc['geoloc_error'] = e.message
 
         store.save(doc)
