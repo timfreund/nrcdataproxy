@@ -12,6 +12,7 @@ setup(
     url='http://bitbucket.com/timfreund/NRCDataProxy',
     install_requires=[
         'flask',
+        'nose',
         'openpyxl',
         'pymongo',
         'requests',
