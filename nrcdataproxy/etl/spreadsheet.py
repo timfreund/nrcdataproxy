@@ -150,7 +150,7 @@ class XlsExtractor(SpreadsheetExtractor):
                     value = value.strip()
 
                 data[col_name.lower()] = value
-            
+            del data['seqnos']
         return data
 
 class XlsxExtractor(SpreadsheetExtractor):
@@ -245,6 +245,7 @@ class XlsxExtractor(SpreadsheetExtractor):
                     value = value.strip()
                 
                 data[col_name.lower()] = value
+            del data['seqnos']
         return data
         
 extractors = [
