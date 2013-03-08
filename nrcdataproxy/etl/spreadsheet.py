@@ -9,12 +9,16 @@ import xlrd
 
 class SpreadsheetExtractor():
     mimetype = None
+    mapped_names = {'material_inv0lved_cr': 'material_involved_cr'}
 
     def __init__(self, filename):
         self.filename = filename
 
     def __iter__(self):
         return self
+
+    def mapped_name(self, name):
+        return self.mapped_names.get(name, name)
 
     def next(self):
         raise StopIteration
@@ -89,7 +93,7 @@ class XlsExtractor(SpreadsheetExtractor):
                 for k, v in detail_data.items():
                     data[k.lower()] = v
             else:
-                lname = name.lower()
+                lname = self.mapped_name(name.lower())
                 data[lname] = {}
                 for k, v in detail_data.items():
                     data[lname][k.lower()] = v
@@ -191,7 +195,7 @@ class XlsxExtractor(SpreadsheetExtractor):
                 for k, v in detail_data.items():
                     data[k.lower()] = v
             else:
-                data[name.lower()] = detail_data
+                data[self.mapped_name(name.lower())] = detail_data
         return data
 
     def incident_details(self, sheet_name, columns, seqnos):
