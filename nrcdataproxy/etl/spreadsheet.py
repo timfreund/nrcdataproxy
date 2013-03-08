@@ -9,6 +9,8 @@ import xlrd
 
 class SpreadsheetExtractor():
     mimetype = None
+
+    location_keys = ['lat_', 'long_',]
     mapped_names = {'material_inv0lved_cr': 'material_involved_cr'}
 
     def __init__(self, filename):
@@ -23,6 +25,19 @@ class SpreadsheetExtractor():
     def next(self):
         raise StopIteration
 
+    def seperate_location_data(self, record):
+        location_data = {}
+        for k, v in record.items():
+            if k.startswith("location_"):
+                location_data[k.replace("location_", "")] = v
+                del record[k]
+            for lk in self.location_keys:
+                if k.startswith(lk):
+                    location_data[k] = v
+                    del record[k]
+        record['location'] = location_data
+        return record
+        
     def scrub_data(self, record):
         for k, v in record.items():
             if isinstance(v, dict):
@@ -31,12 +46,14 @@ class SpreadsheetExtractor():
                 else:
                     del record[k]
             if isinstance(v, basestring) and v == "":
-                record[k] = None
+                # TODO: delete null values and their keys, or keep them?  
+                del record[k]
+                # record[k] = None
         return record
 
     def extract_data(self, repository):
         for record in self:
-            repository.save(self.scrub_data(record))
+            repository.save(self.seperate_location_data(self.scrub_data(record)))
     
 class XlsExtractor(SpreadsheetExtractor):
     mimetype = 'application/vnd.ms-excel'
