@@ -23,9 +23,20 @@ class SpreadsheetExtractor():
     def next(self):
         raise StopIteration
 
+    def scrub_data(self, record):
+        for k, v in record.items():
+            if isinstance(v, dict):
+                if len(v.keys()):
+                    v = self.scrub_data(v)
+                else:
+                    del record[k]
+            if isinstance(v, basestring) and v == "":
+                record[k] = None
+        return record
+
     def extract_data(self, repository):
         for record in self:
-            repository.save(record)
+            repository.save(self.scrub_data(record))
     
 class XlsExtractor(SpreadsheetExtractor):
     mimetype = 'application/vnd.ms-excel'
@@ -76,9 +87,6 @@ class XlsExtractor(SpreadsheetExtractor):
             elif cell.ctype == xlrd.XL_CELL_TEXT:
                 value = value.strip()
 
-            if value == "":
-                value = None
-
             data[col_name.lower()] = value
 
         try:
@@ -124,9 +132,6 @@ class XlsExtractor(SpreadsheetExtractor):
                 elif cell.ctype == xlrd.XL_CELL_TEXT:
                     value = value.strip()
 
-                if value == "":
-                    value = None
-                        
                 data[col_name.lower()] = value
             
         return data
@@ -186,9 +191,6 @@ class XlsxExtractor(SpreadsheetExtractor):
             elif isinstance(value, unicode):
                 value = value.strip()
 
-            if value == "":
-                value = None
-
             data[col_name.lower()] = value
 
         if sheet.cell(row=rowx+1, column=0).value != None:
@@ -225,9 +227,6 @@ class XlsxExtractor(SpreadsheetExtractor):
                 elif isinstance(value, unicode):
                     value = value.strip()
                 
-                if value == "":
-                    value = None
-
                 data[col_name.lower()] = value
         return data
         
