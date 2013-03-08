@@ -12,6 +12,8 @@ class SpreadsheetExtractor():
 
     location_keys = ['lat_', 'long_',]
     mapped_names = {'material_inv0lved_cr': 'material_involved_cr'}
+    negatives = ['N', 'NO']
+    positives = ['Y', 'YES']
 
     def __init__(self, filename):
         self.filename = filename
@@ -49,6 +51,10 @@ class SpreadsheetExtractor():
                 # TODO: delete null values and their keys, or keep them?  
                 del record[k]
                 # record[k] = None
+            if v in self.negatives:
+                record[k] = False
+            if v in self.positives:
+                record[k] = True
         return record
 
     def extract_data(self, repository):
