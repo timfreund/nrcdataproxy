@@ -75,6 +75,10 @@ class XlsExtractor(SpreadsheetExtractor):
                 value = datetime(*value).isoformat()
             elif cell.ctype == xlrd.XL_CELL_TEXT:
                 value = value.strip()
+
+            if value == "":
+                value = None
+
             data[col_name.lower()] = value
 
         try:
@@ -119,6 +123,9 @@ class XlsExtractor(SpreadsheetExtractor):
                                                              str(cell.value))
                 elif cell.ctype == xlrd.XL_CELL_TEXT:
                     value = value.strip()
+
+                if value == "":
+                    value = None
                         
                 data[col_name.lower()] = value
             
@@ -178,6 +185,10 @@ class XlsxExtractor(SpreadsheetExtractor):
                 value = None
             elif isinstance(value, unicode):
                 value = value.strip()
+
+            if value == "":
+                value = None
+
             data[col_name.lower()] = value
 
         if sheet.cell(row=rowx+1, column=0).value != None:
@@ -213,6 +224,10 @@ class XlsxExtractor(SpreadsheetExtractor):
                     value = None
                 elif isinstance(value, unicode):
                     value = value.strip()
+                
+                if value == "":
+                    value = None
+
                 data[col_name.lower()] = value
         return data
         
