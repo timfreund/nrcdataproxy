@@ -14,7 +14,12 @@ class SpreadsheetExtractor():
     mapped_names = {'material_inv0lved_cr': 'material_involved_cr'}
     negatives = ['N', 'NO']
     positives = ['Y', 'YES']
-
+    multi_entry_sheets = ['MATERIAL_INVOLVED', 
+                          'MATERIAL_INV0LVED_CR', 
+                          'TRAINS_DETAIL',
+                          'DERAILED_UNITS',
+    ]
+    
     def __init__(self, filename):
         self.filename = filename
 
@@ -46,6 +51,9 @@ class SpreadsheetExtractor():
                 if len(v.keys()):
                     v = self.scrub_data(v)
                 else:
+                    del record[k]
+            if isinstance(v, list):
+                if not len(v):
                     del record[k]
             if isinstance(v, basestring) and v == "":
                 # TODO: delete null values and their keys, or keep them?  
@@ -85,7 +93,9 @@ class XlsExtractor(SpreadsheetExtractor):
 
             sheet_keys = {}
             for row, cell in enumerate(sheet.col(0)):
-                sheet_keys[cell.value] = row
+                rows = sheet_keys.get(cell.value, [])
+                rows.append(row)
+                sheet_keys[cell.value] = rows
 
             metadata['layout'].append((name, columns))
             metadata['positions'][name] = sheet_keys
@@ -97,7 +107,7 @@ class XlsExtractor(SpreadsheetExtractor):
         name, columns = self.metadata['layout'][0]
         sheet = self.workbook.sheet_by_name(name)
         rowx = self.metadata['current_row']
-
+        
         if rowx == -1:
             raise StopIteration
         
@@ -121,43 +131,53 @@ class XlsExtractor(SpreadsheetExtractor):
         for name, columns in self.metadata['layout'][1:]:
             detail_data = self.incident_details(name, columns, data['seqnos'])
 
-            if detail_data.has_key('SEQNOS'):
-                del detail_data['SEQNOS']
+            if len(detail_data) > 1 and name not in self.multi_entry_sheets:
+                msg = "%s: multiple entries in a single entry sheet: %s" % (data['seqnos'],
+                                                                            name)
+                raise Exception(msg)
+
+            for dd in detail_data:
+                if dd.has_key('SEQNOS'):
+                    del dd['SEQNOS']
 
             if name == 'INCIDENT_COMMONS':
-                for k, v in detail_data.items():
+                for k, v in detail_data[0].items():
                     data[k.lower()] = v
             else:
                 lname = self.mapped_name(name.lower())
-                data[lname] = {}
-                for k, v in detail_data.items():
-                    data[lname][k.lower()] = v
-
+                if name in self.multi_entry_sheets:
+                    data[lname] = []
+                    for dd in detail_data:
+                        data[lname].append(dd)
+                elif len(detail_data):
+                    data[lname] = detail_data[0]
         return data
                 
     def incident_details(self, sheet_name, columns, seqnos):
         sheet = self.workbook.sheet_by_name(sheet_name)
-        data = {}
-        
-        if self.metadata['positions'][sheet_name].has_key(seqnos):
-            sheet_row = self.metadata['positions'][sheet_name][seqnos]
-            for colx, col_name in enumerate(columns):
-                cell = sheet.cell(sheet_row, colx)
-                value = cell.value
-                if cell.ctype == xlrd.XL_CELL_DATE and cell.value != 0.0:
-                    try:
-                        value = xlrd.xldate_as_tuple(cell.value, 0)
-                        value = datetime(*value).isoformat()
-                    except ValueError:
-                        print "%s.%s couldn't convert %s" % (sheet_name,
-                                                             str(seqnos),
-                                                             str(cell.value))
-                elif cell.ctype == xlrd.XL_CELL_TEXT:
-                    value = value.strip()
+        all_data = []
 
-                data[col_name.lower()] = value
-            del data['seqnos']
-        return data
+        if self.metadata['positions'][sheet_name].has_key(seqnos):
+            for sheet_row in self.metadata['positions'][sheet_name][seqnos]:
+                data = {}
+                for colx, col_name in enumerate(columns):
+                    cell = sheet.cell(sheet_row, colx)
+                    value = cell.value
+                    if cell.ctype == xlrd.XL_CELL_DATE and cell.value != 0.0:
+                        try:
+                            value = xlrd.xldate_as_tuple(cell.value, 0)
+                            value = datetime(*value).isoformat()
+                        except ValueError:
+                            print "%s.%s couldn't convert %s" % (sheet_name,
+                                                                 str(seqnos),
+                                                                 str(cell.value))
+                    elif cell.ctype == xlrd.XL_CELL_TEXT:
+                        value = value.strip()
+
+                    data[col_name.lower()] = value
+                del data['seqnos']
+                all_data.append(data)
+        return all_data
 
 class XlsxExtractor(SpreadsheetExtractor):
     mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -187,8 +207,8 @@ class XlsxExtractor(SpreadsheetExtractor):
 
                 sheet_keys = {}
                 for row, cell in enumerate(sheet.columns[0]):
-                    sheet_keys[cell.value] = row
-
+                    sheet_keys.get(cell.value, []).append(row)
+                    
                 metadata['layout'].append((name, columns))
                 metadata['positions'][name] = sheet_keys
 
@@ -236,23 +256,25 @@ class XlsxExtractor(SpreadsheetExtractor):
 
     def incident_details(self, sheet_name, columns, seqnos):
         sheet = self.workbook.get_sheet_by_name(sheet_name)
-        data = {}
+        all_data = []
 
         if self.metadata['positions'][sheet_name].has_key(seqnos):
-            sheet_row = self.metadata['positions'][sheet_name][seqnos]
-            for coly, col_name in enumerate(columns):
-                cell = sheet.cell(row=sheet_row, column=coly)
-                value = cell.value
-                if isinstance(value, datetime):
-                    value = value.isoformat()
-                elif isinstance(value, time):
-                    value = None
-                elif isinstance(value, unicode):
-                    value = value.strip()
+            for sheet_row in self.metadata['positions'][sheet_name][seqnos]:
+                data = {}
+                for coly, col_name in enumerate(columns):
+                    cell = sheet.cell(row=sheet_row, column=coly)
+                    value = cell.value
+                    if isinstance(value, datetime):
+                        value = value.isoformat()
+                    elif isinstance(value, time):
+                        value = None
+                    elif isinstance(value, unicode):
+                        value = value.strip()
                 
-                data[col_name.lower()] = value
-            del data['seqnos']
-        return data
+                    data[col_name.lower()] = value
+                del data['seqnos']
+                all_data.append(data)
+        return all_data
         
 extractors = [
     XlsExtractor,
@@ -265,7 +287,7 @@ def extractor_command():
     spreadsheets into programmer friendly JSON documents.
     """
 
-    parser = OptionParser(usage="usage: %%prog OutputRepositoryClass [options]\n%s" % extractor_command.__doc__)
+    parser = OptionParser(usage="usage: %%prog [options]\n%s" % extractor_command.__doc__)
     parser.add_option("-f", "--input-file", dest="input_file")
     parser.add_option("-i", "--input-directory", dest="input_directory",
                       help="Parse all files in the provided directory")
