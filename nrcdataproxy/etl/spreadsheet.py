@@ -49,16 +49,17 @@ class SpreadsheetExtractor():
         for k, v in record.items():
             if isinstance(v, dict):
                 if len(v.keys()):
-                    v = self.scrub_data(v)
+                    record[k] = self.scrub_data(v)
                 else:
                     del record[k]
             if isinstance(v, list):
                 if not len(v):
                     del record[k]
-            if isinstance(v, basestring) and v == "":
-                # TODO: delete null values and their keys, or keep them?  
+                else:
+                    for vprime in v:
+                        self.scrub_data(vprime)
+            if isinstance(v, basestring) and v == "" or v is None:
                 del record[k]
-                # record[k] = None
             if v in self.negatives:
                 record[k] = False
             if v in self.positives:
@@ -140,7 +141,7 @@ class XlsExtractor(SpreadsheetExtractor):
                 if dd.has_key('SEQNOS'):
                     del dd['SEQNOS']
 
-            if name == 'INCIDENT_COMMONS':
+            if name == 'INCIDENT_COMMONS' and len(detail_data):
                 for k, v in detail_data[0].items():
                     data[k.lower()] = v
             else:
@@ -207,7 +208,9 @@ class XlsxExtractor(SpreadsheetExtractor):
 
                 sheet_keys = {}
                 for row, cell in enumerate(sheet.columns[0]):
-                    sheet_keys.get(cell.value, []).append(row)
+                    rows = sheet_keys.get(cell.value, [])
+                    rows.append(row)
+                    sheet_keys[cell.value] = rows
                     
                 metadata['layout'].append((name, columns))
                 metadata['positions'][name] = sheet_keys
@@ -244,14 +247,27 @@ class XlsxExtractor(SpreadsheetExtractor):
         for name, columns in self.metadata['layout'][1:]:
             detail_data = self.incident_details(name, columns, data['seqnos'])
 
-            if detail_data.has_key('SEQNOS'):
-                del detail_data['SEQNOS']
+            if len(detail_data) > 1 and name not in self.multi_entry_sheets:
+                msg = "%s: multiple entries in a single entry sheet: %s" % (data['seqnos'],
+                                                                            name)
+                raise Exception(msg)
 
-            if name == 'INCIDENT_COMMONS':
-                for k, v in detail_data.items():
+            for dd in detail_data:
+                if dd.has_key('SEQNOS'):
+                    del dd['SEQNOS']
+
+            if name == 'INCIDENT_COMMONS' and len(detail_data):
+                for k, v in detail_data[0].items():
                     data[k.lower()] = v
             else:
-                data[self.mapped_name(name.lower())] = detail_data
+                lname = self.mapped_name(name.lower())
+                if name in self.multi_entry_sheets:
+                    data[lname] = []
+                    for dd in detail_data:
+                        data[lname].append(dd)
+                elif len(detail_data):
+                    data[lname] = detail_data[0]
+
         return data
 
     def incident_details(self, sheet_name, columns, seqnos):
