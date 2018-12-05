@@ -11,5 +11,5 @@ class NRCDataClient:
                                                                 'url': self.url},
                          data=json.dumps(incident),
                          headers = self.default_headers)
-        print "%d: %s" % (incident['seqnos'], r.status_code)
+        print("%d: %s" % (incident['seqnos'], r.status_code))
 

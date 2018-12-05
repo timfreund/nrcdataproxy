@@ -50,10 +50,10 @@ def geocode_command():
                                                    int(doc['long_min']),
                                                    int(doc['long_sec']))
             doc['geoloc'] = [latitude, longitude]
-            print "%d: %f, %f" % (doc['seqnos'], latitude, longitude)
+            print("%d: %f, %f" % (doc['seqnos'], latitude, longitude))
 
         except Exception, e:
-            print "%d: %s" % (doc['seqnos'], e.message)
+            print("%d: %s" % (doc['seqnos'], e.message))
             doc['geoloc_error'] = e.message
 
         store.save(doc)

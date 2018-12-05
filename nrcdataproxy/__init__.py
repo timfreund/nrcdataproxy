@@ -8,7 +8,7 @@ webapp = Flask(__name__)
 @webapp.before_request
 def before_request():
     if not hasattr(webapp, 'store'):
-        print "creating new store"
+        print("creating new store")
         store_config = webapp.config.store_config
         store = webapp.config.store_class.configure_from_commandline(store_config)
         webapp.store = store

@@ -169,9 +169,9 @@ class XlsExtractor(SpreadsheetExtractor):
                             value = xlrd.xldate_as_tuple(cell.value, 0)
                             value = datetime(*value).isoformat()
                         except ValueError:
-                            print "%s.%s couldn't convert %s" % (sheet_name,
+                            print("%s.%s couldn't convert %s" % (sheet_name,
                                                                  str(seqnos),
-                                                                 str(cell.value))
+                                                                 str(cell.value)))
                     elif cell.ctype == xlrd.XL_CELL_TEXT:
                         value = value.strip()
 
@@ -314,14 +314,14 @@ def extractor_command():
     (options, args) = parser.parse_args()
 
     if options.data_url is None:
-        print "Please provide an NRC Data URL"
+        print("Please provide an NRC Data URL")
         parser.print_help()
         sys.exit(-1)
 
     data_storage = NRCDataClient(options.data_url)
 
     if options.input_file is None and options.input_directory is None:
-        print "You must supply an input file or input directory"
+        print("You must supply an input file or input directory")
         parser.print_help()
         sys.exit(-1)
 
@@ -329,7 +329,7 @@ def extractor_command():
 
     if options.input_file:
         if not os.path.exists(options.input_file):
-            print "The input file does not exist"
+            print("The input file does not exist")
             sys.exit(-1)
         else:
             file_paths.append(os.path.abspath(options.input_file))
@@ -337,7 +337,7 @@ def extractor_command():
     if options.input_directory:
         input_dir = options.input_directory
         if not os.path.exists(input_dir):
-            print "The input directory does not exist"
+            print("The input directory does not exist")
             sys.exit(-1)
         else:
             input_dir = os.path.abspath(input_dir)
@@ -351,10 +351,10 @@ def extractor_command():
                 extractor = extract_class(file_path)
                 
         if extractor is None:
-            print "No extractor available for %s" % file_path
+            print("No extractor available for %s" % file_path)
         else:
             extractor.extract_data(data_storage)
             
-    print "Extracted data from NRC spreadsheets"
+    print("Extracted data from NRC spreadsheets")
 
     

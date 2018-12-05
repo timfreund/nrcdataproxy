@@ -23,4 +23,4 @@ class SpreadsheetExtractorTest(unittest.TestCase):
         
         for k, v in record.items():
             self.assertIsNotNone(v, "%s is None, was not removed in scrub_data" % k)
-        print record
+        print(record)
