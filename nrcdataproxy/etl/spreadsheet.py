@@ -5,7 +5,6 @@ import mimetypes
 import os
 import openpyxl
 import sys
-import xlrd
 
 class SpreadsheetExtractor():
     mimetype = None
@@ -69,116 +68,6 @@ class SpreadsheetExtractor():
     def extract_data(self, repository):
         for record in self:
             repository.save(self.seperate_location_data(self.scrub_data(record)))
-    
-class XlsExtractor(SpreadsheetExtractor):
-    mimetype = 'application/vnd.ms-excel'
-
-    def __init__(self, *args):
-        SpreadsheetExtractor.__init__(self, *args)
-        self.workbook = xlrd.open_workbook(self.filename)
-        self.metadata = self.load_metadata()
-
-    def load_metadata(self):
-        metadata = {'layout': [],
-                    'positions': {}}
-        metadata['current_row'] = 1
-        
-        for name in self.workbook.sheet_names():
-            sheet = self.workbook.sheet_by_name(name)
-            columns = []
-            for x in range(0, sheet.ncols):
-                columns.append(sheet.cell(0, x).value)
-
-            if columns[0] == u' ':
-                columns[0] = 'SEQNOS'
-
-            sheet_keys = {}
-            for row, cell in enumerate(sheet.col(0)):
-                rows = sheet_keys.get(cell.value, [])
-                rows.append(row)
-                sheet_keys[cell.value] = rows
-
-            metadata['layout'].append((name, columns))
-            metadata['positions'][name] = sheet_keys
-        return metadata
-
-    def next(self):
-        data = {}
-
-        name, columns = self.metadata['layout'][0]
-        sheet = self.workbook.sheet_by_name(name)
-        rowx = self.metadata['current_row']
-        
-        if rowx == -1:
-            raise StopIteration
-        
-        for colx, col_name in enumerate(columns):
-            cell = sheet.cell(rowx, colx)
-            value = cell.value
-            if cell.ctype == xlrd.XL_CELL_DATE:
-                value = xlrd.xldate_as_tuple(cell.value, 0)
-                value = datetime(*value).isoformat()
-            elif cell.ctype == xlrd.XL_CELL_TEXT:
-                value = value.strip()
-
-            data[col_name.lower()] = value
-
-        try:
-            sheet.cell(rowx+1, 0).value
-            self.metadata['current_row'] = rowx + 1
-        except IndexError:
-            self.metadata['current_row'] = -1
-
-        for name, columns in self.metadata['layout'][1:]:
-            detail_data = self.incident_details(name, columns, data['seqnos'])
-
-            if len(detail_data) > 1 and name not in self.multi_entry_sheets:
-                msg = "%s: multiple entries in a single entry sheet: %s" % (data['seqnos'],
-                                                                            name)
-                raise Exception(msg)
-
-            for dd in detail_data:
-                if dd.has_key('SEQNOS'):
-                    del dd['SEQNOS']
-
-            if name == 'INCIDENT_COMMONS' and len(detail_data):
-                for k, v in detail_data[0].items():
-                    data[k.lower()] = v
-            else:
-                lname = self.mapped_name(name.lower())
-                if name in self.multi_entry_sheets:
-                    data[lname] = []
-                    for dd in detail_data:
-                        data[lname].append(dd)
-                elif len(detail_data):
-                    data[lname] = detail_data[0]
-        return data
-                
-    def incident_details(self, sheet_name, columns, seqnos):
-        sheet = self.workbook.sheet_by_name(sheet_name)
-        all_data = []
-
-        if self.metadata['positions'][sheet_name].has_key(seqnos):
-            for sheet_row in self.metadata['positions'][sheet_name][seqnos]:
-                data = {}
-                for colx, col_name in enumerate(columns):
-                    cell = sheet.cell(sheet_row, colx)
-                    value = cell.value
-                    if cell.ctype == xlrd.XL_CELL_DATE and cell.value != 0.0:
-                        try:
-                            value = xlrd.xldate_as_tuple(cell.value, 0)
-                            value = datetime(*value).isoformat()
-                        except ValueError:
-                            print("%s.%s couldn't convert %s" % (sheet_name,
-                                                                 str(seqnos),
-                                                                 str(cell.value)))
-                    elif cell.ctype == xlrd.XL_CELL_TEXT:
-                        value = value.strip()
-
-                    data[col_name.lower()] = value
-                del data['seqnos']
-                all_data.append(data)
-        return all_data
 
 class XlsxExtractor(SpreadsheetExtractor):
     mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -293,7 +182,6 @@ class XlsxExtractor(SpreadsheetExtractor):
         return all_data
         
 extractors = [
-    XlsExtractor,
     XlsxExtractor
     ]
 
@@ -309,7 +197,6 @@ def extractor_command():
                       help="Parse all files in the provided directory")
     parser.add_option("-u", "--nrc-data-url", dest="data_url",
                       help="NRCDataProxy URL")
-
 
     (options, args) = parser.parse_args()
 
@@ -356,5 +243,3 @@ def extractor_command():
             extractor.extract_data(data_storage)
             
     print("Extracted data from NRC spreadsheets")
-
-    
