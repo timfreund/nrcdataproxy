@@ -1,0 +1,2 @@
+git+https://github.com/wireservice/agate-excel.git#egg=agate-excel
+requests
