@@ -1,6 +1,8 @@
 from datetime import datetime, time
 from optparse import OptionParser
 from nrcdataproxy.client import NRCDataClient
+import agate
+import agateexcel
 import mimetypes
 import os
 import openpyxl
@@ -69,8 +71,59 @@ class SpreadsheetExtractor():
         for record in self:
             repository.save(self.seperate_location_data(self.scrub_data(record)))
 
-class XlsxExtractor(SpreadsheetExtractor):
+class XlsxAgateExtractor(SpreadsheetExtractor):
     mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    def __init__(self, *args):
+        SpreadsheetExtractor.__init__(self, *args)
+        self.load_metadata()
+        import IPython; IPython.embed()
+
+    def load_metadata(self):
+        self.workbook = openpyxl.load_workbook(self.filename,
+                                               read_only=True, data_only=True)
+        self.sheetnames = self.workbook.sheetnames
+        self.sheets = {}
+
+        from datetime import date, datetime, timedelta
+        for sheetname in self.sheetnames:
+            self.sheets[sheetname] = agate.Table.from_xlsx(self.filename,
+                                                           sheet=sheetname,
+                                                           row_names=lambda r: '%(SEQNOS)s' % (r))
+
+    def __next__(self):
+        raise StopIteration
+
+    def get_record(self, seqnos):
+        # TODO ponder seqnos types
+        # we have named rows, but that involves casting the seqnos to a string
+        # We can't used the named rows for sheets with multiple entries per SEQNOS
+        # so we end up doing a sheet.where to get those multi-entry sheets.  To do
+        # that we cast back to an int.  It's kind ugly.
+        #
+        # maybe we use sheet.where for all cases, but only return in a list for confirmed
+        # multi-entry sheets?
+        seqnos = '%d' % seqnos
+        call_record = self.sheets['CALLS'].rows[seqnos].dict()
+        for sn in self.sheetnames:
+            if sn != 'CALLS':
+                sheet = self.sheets[sn]
+                if sn in self.multi_entry_sheets:
+                    sub_record_list = []
+                    subset = sheet.where(lambda r: r['SEQNOS'] == int(seqnos))
+                    for r in subset.rows:
+                        sub_record_list.append(r.dict())
+                    call_record[sn] = sub_record_list
+                else:
+                    try:
+                        sub_record = self.sheets[sn].rows[seqnos]
+                        call_record[sn] = sub_record.dict()
+                    except KeyError:
+                        pass
+        return call_record
+
+class XlsxExtractor(SpreadsheetExtractor):
+    mimetype = 'disable-application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
     def __init__(self, *args):
         SpreadsheetExtractor.__init__(self, *args)
@@ -182,7 +235,7 @@ class XlsxExtractor(SpreadsheetExtractor):
         return all_data
         
 extractors = [
-    XlsxExtractor
+    XlsxAgateExtractor
     ]
 
 def extractor_command():
