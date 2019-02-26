@@ -53,7 +53,7 @@ class SpreadsheetExtractor():
                 else:
                     for vprime in v:
                         self.scrub_data(vprime)
-            if isinstance(v, basestring) and v == "" or v is None:
+            if isinstance(v, str) and v == "" or v is None:
                 del record[k]
             if v in self.negatives:
                 record[k] = False
