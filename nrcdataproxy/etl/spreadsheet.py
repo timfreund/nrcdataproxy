@@ -24,14 +24,8 @@ class SpreadsheetExtractor():
     def __init__(self, filename):
         self.filename = filename
 
-    def __iter__(self):
-        return self
-
     def mapped_name(self, name):
         return self.mapped_names.get(name, name)
-
-    def next(self):
-        raise StopIteration
 
     def seperate_location_data(self, record):
         location_data = {}
@@ -68,7 +62,7 @@ class SpreadsheetExtractor():
         return record
 
     def extract_data(self, repository):
-        for record in self:
+        for record in self.records:
             repository.save(self.seperate_location_data(self.scrub_data(record)))
 
 class XlsxAgateExtractor(SpreadsheetExtractor):
@@ -77,7 +71,7 @@ class XlsxAgateExtractor(SpreadsheetExtractor):
     def __init__(self, *args):
         SpreadsheetExtractor.__init__(self, *args)
         self.load_metadata()
-        import IPython; IPython.embed()
+        # import IPython; IPython.embed()
 
     def load_metadata(self):
         self.workbook = openpyxl.load_workbook(self.filename,
@@ -91,8 +85,12 @@ class XlsxAgateExtractor(SpreadsheetExtractor):
                                                            sheet=sheetname,
                                                            row_names=lambda r: '%(SEQNOS)s' % (r))
 
-    def __next__(self):
-        raise StopIteration
+    @property
+    def records(self):
+        calls = self.sheets['CALLS']
+        for seqnos in calls.columns[0].values():
+            if seqnos is not None:
+                yield self.get_record(seqnos)
 
     def get_record(self, seqnos):
         # TODO ponder seqnos types
@@ -158,8 +156,9 @@ class XlsxExtractor(SpreadsheetExtractor):
                 metadata['positions'][name] = sheet_keys
 
         return metadata
-                
-    def next(self):
+
+    @property
+    def records(self):
         data = {}
 
         name, columns = self.metadata['layout'][0]
@@ -210,7 +209,7 @@ class XlsxExtractor(SpreadsheetExtractor):
                 elif len(detail_data):
                     data[lname] = detail_data[0]
 
-        return data
+        yield data
 
     def incident_details(self, sheet_name, columns, seqnos):
         sheet = self.workbook.get_sheet_by_name(sheet_name)
