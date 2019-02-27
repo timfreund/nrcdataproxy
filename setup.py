@@ -9,7 +9,7 @@ setup(
     author='Tim Freund',
     author_email='tim@freunds.net',
     license = 'MIT',
-    url='http://bitbucket.com/timfreund/NRCDataProxy',
+    url='https://github.com/timfreund/nrcdataproxy',
     install_requires=[
                 ],
     packages=['nrcdataproxy'],
