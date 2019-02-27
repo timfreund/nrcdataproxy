@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from decimal import Decimal
 from optparse import OptionParser
 from nrcdataproxy.client import NRCDataClient
 import agate
@@ -41,7 +42,12 @@ class SpreadsheetExtractor():
         return record
         
     def scrub_data(self, record):
+        newrec = {}
         for k, v in record.items():
+            newrec[k.lower()] = v
+        record = newrec
+        for k in list(record.keys()):
+            v = record[k]
             if isinstance(v, dict):
                 if len(v.keys()):
                     record[k] = self.scrub_data(v)
@@ -51,9 +57,18 @@ class SpreadsheetExtractor():
                 if not len(v):
                     del record[k]
                 else:
+                    newlist = []
                     for vprime in v:
-                        self.scrub_data(vprime)
-            if isinstance(v, basestring) and v == "" or v is None:
+                        newlist.append(self.scrub_data(vprime))
+                    record[k] = newlist
+            if isinstance(v, datetime):
+                record[k] = v.isoformat()
+            if isinstance(v, Decimal):
+                try:
+                    record[k] = int(v)
+                except ValueError:
+                    record[k] = float(v)
+            if isinstance(v, str) and v == "" or v is None:
                 del record[k]
             if v in self.negatives:
                 record[k] = False
