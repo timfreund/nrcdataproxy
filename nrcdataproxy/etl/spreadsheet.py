@@ -277,18 +277,27 @@ def extract_xlsx_to_sql(filename, sqlurl):
     # columns, but once in a while there'll be a number.
     specified_types = {}
     specified_types['INCIDENTS'] = {
+        'BRAKEMAN_TESTING': agate.Number(),
+        'OTHER_EMPLOYEE_TESTING': agate.Number(),
         'RCL_OPERATOR_TESTING': agate.Number(),
+        'SIGNALMAN_TESTING': agate.Number(),
+        'TRAIN_DISPATCHER_TESTING': agate.Number(),
         'TRAINMAN_TESTING': agate.Number(),
+        'UNKNOWN_TESTING': agate.Text(), # CY10, YES
+        'YARD_FOREMAN_TESTING': agate.Number(),
     }
     specified_types['INCIDENT_COMMONS'] = {
         'LOCATION_ZIP': agate.Text(),
     }
     specified_types['INCIDENT_DETAILS'] = {
         'AIR_CLOSURE_TIME': agate.Number(),
+        'AIR_CORRIDOR_DESC': agate.Text(),
         'EMPL_FATALITY': agate.Number(),
         'ESTIMATED_DURATION_OF_RELEASE': agate.Text(), # CY14, on-going
+        'OFFSHORE': agate.Text(), # CY08, U (unknown?)
         'PASS_FATALITY': agate.Number(),
         'RELEASE_RATE': agate.Text(), # CY15, UNK
+        'WATERWAY_CLOSURE_TIME': agate.Number(), # CY12
     }
 
     for sheetname in sheetnames:
