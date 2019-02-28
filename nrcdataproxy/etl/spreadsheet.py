@@ -271,12 +271,24 @@ def extract_xlsx_to_sql(filename, sqlurl):
     # guesses wrong.  This is especially possible when dealing with
     # multiple data files like we are in this project.  We're able
     # to override the type inference system here
+    #
+    # Many columns are sparsely populated: mostly blank, with maybe
+    # a 1 or a 0 once in a while.  Agate will assume those are boolean
+    # columns, but once in a while there'll be a number.
     specified_types = {}
+    specified_types['INCIDENTS'] = {
+        'RCL_OPERATOR_TESTING': agate.Number(),
+        'TRAINMAN_TESTING': agate.Number(),
+    }
     specified_types['INCIDENT_COMMONS'] = {
         'LOCATION_ZIP': agate.Text(),
     }
     specified_types['INCIDENT_DETAILS'] = {
+        'AIR_CLOSURE_TIME': agate.Number(),
+        'EMPL_FATALITY': agate.Number(),
+        'ESTIMATED_DURATION_OF_RELEASE': agate.Text(), # CY14, on-going
         'PASS_FATALITY': agate.Number(),
+        'RELEASE_RATE': agate.Text(), # CY15, UNK
     }
 
     for sheetname in sheetnames:
