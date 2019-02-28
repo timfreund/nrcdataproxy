@@ -4,6 +4,7 @@ from optparse import OptionParser
 from nrcdataproxy.client import NRCDataClient
 import agate
 import agateexcel
+import agatesql
 import mimetypes
 import os
 import openpyxl
@@ -94,7 +95,6 @@ class XlsxAgateExtractor(SpreadsheetExtractor):
         self.sheetnames = self.workbook.sheetnames
         self.sheets = {}
 
-        from datetime import date, datetime, timedelta
         for sheetname in self.sheetnames:
             self.sheets[sheetname] = agate.Table.from_xlsx(self.filename,
                                                            sheet=sheetname,
@@ -252,6 +252,52 @@ extractors = [
     XlsxAgateExtractor
     ]
 
+def env_db_string():
+    user = os.environ.get('POSTGRES_USER', 'user_not_set')
+    password = os.environ.get('POSTGRES_PASSWORD', 'password_not_set')
+    database = os.environ.get('POSTGRES_DB', 'database_not_set')
+    host = os.environ.get('POSTGRES_HOST', 'db')
+    port = os.environ.get('POSTGRES_port', '5432')
+
+    return "postgresql://%s:%s@%s:%s/%s" % (user, password, host,
+                                            port, database)
+
+def extract_xlsx_to_sql(filename, sqlurl):
+    workbook = openpyxl.load_workbook(filename,
+                                      read_only=True, data_only=True)
+    sheetnames = workbook.sheetnames
+
+    # Agate makes an educated guess at data types, but sometimes it
+    # guesses wrong.  This is especially possible when dealing with
+    # multiple data files like we are in this project.  We're able
+    # to override the type inference system here
+    specified_types = {}
+    specified_types['INCIDENT_COMMONS'] = {
+        'LOCATION_ZIP': agate.Text(),
+    }
+    specified_types['INCIDENT_DETAILS'] = {
+        'PASS_FATALITY': agate.Number(),
+    }
+
+    for sheetname in sheetnames:
+        print(sheetname)
+        start = datetime.now()
+        t = agate.Table.from_xlsx(filename,
+                                  sheet=sheetname,
+                                  column_types=specified_types.get(sheetname, {}))
+        # we create a duplicate table with lowercase column names because
+        # uppercase names require quoting in resulting SQL statements
+        # and we lowercase the SQL table name for the same reason in the following
+        # line
+        t = t.rename(column_names = [name.lower() for name in t.column_names])
+        t.to_sql(sqlurl,
+                 sheetname.lower(),
+                 constraints=False,
+                 create=True,
+                 create_if_not_exists=True)
+        delta = datetime.now() - start
+        print("\t%d" % delta.seconds)
+
 def extractor_command():
     """
     This command extracts data from National Response Center (NRC) incident archive
@@ -299,14 +345,18 @@ def extractor_command():
                 file_paths.append(os.path.sep.join((input_dir, name)))
 
     for file_path in file_paths:
-        extractor = None
-        for extract_class in extractors:
-            if extract_class.mimetype == mimetypes.guess_type(file_path)[0]:
-                extractor = extract_class(file_path)
+        print(file_path)
+        extract_xlsx_to_sql(file_path, env_db_string())
+
+    # for file_path in file_paths:
+    #     extractor = None
+    #     for extract_class in extractors:
+    #         if extract_class.mimetype == mimetypes.guess_type(file_path)[0]:
+    #             extractor = extract_class(file_path)
                 
-        if extractor is None:
-            print("No extractor available for %s" % file_path)
-        else:
-            extractor.extract_data(data_storage)
+    #     if extractor is None:
+    #         print("No extractor available for %s" % file_path)
+    #     else:
+    #         extractor.extract_data(data_storage)
             
     print("Extracted data from NRC spreadsheets")
