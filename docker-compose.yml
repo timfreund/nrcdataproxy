@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  db:
+    image: postgres
+    env_file:
+      - ./.envs/local/postgres
+
+  nrc:
+    build:
+      context: .
+    depends_on:
+      - db
+    env_file:
+      - ./.envs/local/postgres
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/usr/local/nrc
+    entrypoint: nrcdataproxy
+

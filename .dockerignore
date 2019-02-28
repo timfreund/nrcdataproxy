@@ -1,0 +1,5 @@
+# The data files are large and don't need to be added to the docker images
+data
+# venv is excluded in case developers are doing local work, the virtualenv
+# shouldn't be added to docker images
+venv
