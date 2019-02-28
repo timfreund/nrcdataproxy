@@ -1,5 +1,5 @@
 agate-sql
 git+https://github.com/wireservice/agate-excel.git#egg=agate-excel
 flask
-psycopg2
+psycopg2-binary
 requests
