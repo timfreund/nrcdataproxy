@@ -5,6 +5,10 @@ import os
 import platform
 import sys
 
+archive_sources = {
+    'authoritative': 'http://www.nrc.uscg.mil/FOIAFiles',
+    'mirror': 'https://resources.codemuxer.com/data-pipelines/nrc-data/',
+}
 
 archives = {
     # '1982': 'http://www.nrc.uscg.mil/download/nrc_82.exe',
@@ -15,45 +19,47 @@ archives = {
     # '1987': 'http://www.nrc.uscg.mil/download/nrc_87.exe',
     # '1988': 'http://www.nrc.uscg.mil/download/nrc_88.exe',
     # '1989': 'http://www.nrc.uscg.mil/download/nrc_89.exe',
-    '1990': 'http://www.nrc.uscg.mil/FOIAFiles/CY90.xlsx',
-    '1991': 'http://www.nrc.uscg.mil/FOIAFiles/CY91.xlsx',
-    '1992': 'http://www.nrc.uscg.mil/FOIAFiles/CY92.xlsx',
-    '1993': 'http://www.nrc.uscg.mil/FOIAFiles/CY93.xlsx',
-    '1994': 'http://www.nrc.uscg.mil/FOIAFiles/CY94.xlsx',
-    '1995': 'http://www.nrc.uscg.mil/FOIAFiles/CY95.xlsx',
-    '1996': 'http://www.nrc.uscg.mil/FOIAFiles/CY96.xlsx',
-    '1997': 'http://www.nrc.uscg.mil/FOIAFiles/CY97.xlsx',
-    '1998': 'http://www.nrc.uscg.mil/FOIAFiles/CY98.xlsx',
-    '1999': 'http://www.nrc.uscg.mil/FOIAFiles/CY99.xlsx',
-    '2000': 'http://www.nrc.uscg.mil/FOIAFiles/CY00.xlsx',
-    '2001': 'http://www.nrc.uscg.mil/FOIAFiles/CY01.xlsx',
-    '2002': 'http://www.nrc.uscg.mil/FOIAFiles/CY02.xlsx',
-    '2003': 'http://www.nrc.uscg.mil/FOIAFiles/CY03.xlsx',
-    '2004': 'http://www.nrc.uscg.mil/FOIAFiles/CY04.xlsx',
-    '2005': 'http://www.nrc.uscg.mil/FOIAFiles/CY05.xlsx',
-    '2006': 'http://www.nrc.uscg.mil/FOIAFiles/CY06.xlsx',
-    '2007': 'http://www.nrc.uscg.mil/FOIAFiles/CY07.xlsx',
-    '2008': 'http://www.nrc.uscg.mil/FOIAFiles/CY08.xlsx',
-    '2009': 'http://www.nrc.uscg.mil/FOIAFiles/CY09.xlsx',
-    '2010': 'http://www.nrc.uscg.mil/FOIAFiles/CY10.xlsx',
-    '2011': 'http://www.nrc.uscg.mil/FOIAFiles/CY11.xlsx',
-    '2012': 'http://www.nrc.uscg.mil/FOIAFiles/CY12.xlsx',
-    '2013': 'http://www.nrc.uscg.mil/FOIAFiles/CY13.xlsx',
-    '2014': 'http://www.nrc.uscg.mil/FOIAFiles/CY14.xlsx',
-    '2015': 'http://www.nrc.uscg.mil/FOIAFiles/CY15.xlsx',
-    '2016': 'http://www.nrc.uscg.mil/FOIAFiles/CY16.xlsx',
-    '2017': 'http://www.nrc.uscg.mil/FOIAFiles/CY17.xlsx',
-    '2018': 'http://www.nrc.uscg.mil/FOIAFiles/CY18.xlsx',
-    '2019': 'http://www.nrc.uscg.mil/FOIAFiles/Current.xlsx',
+    '1990': 'CY90.xlsx',
+    '1991': 'CY91.xlsx',
+    '1992': 'CY92.xlsx',
+    '1993': 'CY93.xlsx',
+    '1994': 'CY94.xlsx',
+    '1995': 'CY95.xlsx',
+    '1996': 'CY96.xlsx',
+    '1997': 'CY97.xlsx',
+    '1998': 'CY98.xlsx',
+    '1999': 'CY99.xlsx',
+    '2000': 'CY00.xlsx',
+    '2001': 'CY01.xlsx',
+    '2002': 'CY02.xlsx',
+    '2003': 'CY03.xlsx',
+    '2004': 'CY04.xlsx',
+    '2005': 'CY05.xlsx',
+    '2006': 'CY06.xlsx',
+    '2007': 'CY07.xlsx',
+    '2008': 'CY08.xlsx',
+    '2009': 'CY09.xlsx',
+    '2010': 'CY10.xlsx',
+    '2011': 'CY11.xlsx',
+    '2012': 'CY12.xlsx',
+    '2013': 'CY13.xlsx',
+    '2014': 'CY14.xlsx',
+    '2015': 'CY15.xlsx',
+    '2016': 'CY16.xlsx',
+    '2017': 'CY17.xlsx',
+    '2018': 'CY18.xlsx',
+    '2019': 'Current.xlsx',
     }
 
 
 def download_year(output_dir, year):
+    # TODO: see if the file exists before we download
+    # TODO: let users switch between the mirror and authoritative sources
     print("Downloading %s" % year)
-    archive = urlopen(archives[year])
+    archive = urlopen("%s/%s" % (archive_sources['mirror'], archives[year]))
     destination_path = os.path.sep.join((output_dir,
                                          'archives',
-                                        archives[year].split('/')[-1]))
+                                        archives[year]))
     if os.path.exists(destination_path):
         print("%s already exists, skipping" % year)
     else:
