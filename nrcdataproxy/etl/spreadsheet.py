@@ -1,7 +1,6 @@
 from datetime import datetime, time
 from decimal import Decimal
 from optparse import OptionParser
-from nrcdataproxy.client import NRCDataClient
 import agate
 import agateexcel
 import agatesql
@@ -276,8 +275,17 @@ def extract_xlsx_to_sql(filename, sqlurl):
     # a 1 or a 0 once in a while.  Agate will assume those are boolean
     # columns, but once in a while there'll be a number.
     specified_types = {}
+    specified_types['CALLS'] = {
+        'RESPONSIBLE_ZIP': agate.Text(), # CY90 '-    '
+    }
+    specified_types['DERAILED_UNITS'] = {
+        'POSITION_IN_TRAIN': agate.Text(), # U
+    }
     specified_types['INCIDENTS'] = {
+        'AIRCRAFT_HANGER': agate.Text(),
+        'BERTH_SLIP_NUMBER': agate.Text(),
         'BRAKEMAN_TESTING': agate.Number(),
+        'DATE_TIME_NORMAL_SERVICE': agate.DateTime(),
         'OTHER_EMPLOYEE_TESTING': agate.Number(),
         'RCL_OPERATOR_TESTING': agate.Number(),
         'SIGNALMAN_TESTING': agate.Number(),
@@ -287,17 +295,49 @@ def extract_xlsx_to_sql(filename, sqlurl):
         'YARD_FOREMAN_TESTING': agate.Number(),
     }
     specified_types['INCIDENT_COMMONS'] = {
+        'INCIDENT_LOCATION': agate.Text(),
+        'LAT_QUAD': agate.Text(),
+        'LONG_QUAD': agate.Text(),
         'LOCATION_ZIP': agate.Text(),
     }
     specified_types['INCIDENT_DETAILS'] = {
         'AIR_CLOSURE_TIME': agate.Number(),
+        'AIR_CORRIDOR_CLOSED': agate.Text(),
         'AIR_CORRIDOR_DESC': agate.Text(),
+        'ANY_FATALITIES': agate.Text(), # CY96, U
+        'ANY_INJURIES': agate.Text(), # CY96, U
+        'COMMUNITY_IMPACT': agate.Text(),
         'EMPL_FATALITY': agate.Number(),
         'ESTIMATED_DURATION_OF_RELEASE': agate.Text(), # CY14, on-going
+        'FIRE_EXTINGUISHED': agate.Text(), # CY96, U
         'OFFSHORE': agate.Text(), # CY08, U (unknown?)
         'PASS_FATALITY': agate.Number(),
         'RELEASE_RATE': agate.Text(), # CY15, UNK
+        'RELEASE_SECURED': agate.Text(), # CY15, UNK
+        'ROAD_CLOSED': agate.Text(), # CY15, UNK
+        'TRACK_CLOSED': agate.Text(), # CY96, U
+        'TRACK_CLOSURE_TIME': agate.Number(), # CY99, 1
+        'WATERWAY_CLOSED': agate.Text(), # CY96, U
+        'WATERWAY_CLOSURE_TIME': agate.Text(), # CY96, U
         'WATERWAY_CLOSURE_TIME': agate.Number(), # CY12
+    }
+    specified_types['MATERIAL_INVOLVED'] = {
+        'IF_REACHED_WATER': agate.Text(), # CY95 UNKNOWN
+    }
+    specified_types['MATERIAL_INV0LVED_CR'] = {
+        'CAS_NUMBER': agate.Text(), # CY97 000000-00-0
+        'UPPER_BOUNDS': agate.Text(), # CY05 UNKNOWN
+    }
+    specified_types['MOBILE_DETAILS'] = {
+        'CARGO_CAPACITY': agate.Text(), # CY02 O instead of 0
+    }
+    specified_types['TRAINS_DETAIL'] = {
+        'NON_COMPLIANCE_WITH_HAZMAT': agate.Text(),
+    }
+    specified_types['VESSELS_DETAIL'] = {
+        'CARGO_ON_BOARD': agate.Text(), # CY06 SEWAGE
+        'FUEL_CAPACITY': agate.Text(), # CY03 110,000 (that comma...)
+        'FUEL_ON_BOARD': agate.Text(), # CY03 53,000 (that comma...)
     }
 
     for sheetname in sheetnames:
@@ -315,7 +355,9 @@ def extract_xlsx_to_sql(filename, sqlurl):
                  sheetname.lower(),
                  constraints=False,
                  create=True,
-                 create_if_not_exists=True)
+                 create_if_not_exists=True,
+                 # chunk_size=1,
+        )
         delta = datetime.now() - start
         print("\t%d" % delta.seconds)
 
@@ -329,17 +371,8 @@ def extractor_command():
     parser.add_option("-f", "--input-file", dest="input_file")
     parser.add_option("-i", "--input-directory", dest="input_directory",
                       help="Parse all files in the provided directory")
-    parser.add_option("-u", "--nrc-data-url", dest="data_url",
-                      help="NRCDataProxy URL")
 
     (options, args) = parser.parse_args()
-
-    if options.data_url is None:
-        print("Please provide an NRC Data URL")
-        parser.print_help()
-        sys.exit(-1)
-
-    data_storage = NRCDataClient(options.data_url)
 
     if options.input_file is None and options.input_directory is None:
         print("You must supply an input file or input directory")
