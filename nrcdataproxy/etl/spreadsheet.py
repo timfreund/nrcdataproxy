@@ -409,7 +409,8 @@ def extractor_command():
         else:
             input_dir = os.path.abspath(input_dir)
             for name in os.listdir(input_dir):
-                file_paths.append(os.path.sep.join((input_dir, name)))
+                if name.endswith('.xlsx'):
+                    file_paths.append(os.path.sep.join((input_dir, name)))
 
     processes = {}
     for file_path in file_paths:
