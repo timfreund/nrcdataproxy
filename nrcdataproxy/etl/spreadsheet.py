@@ -1,5 +1,6 @@
 from datetime import datetime, time
 from decimal import Decimal
+from multiprocessing import Process
 from optparse import OptionParser
 import agate
 import agateexcel
@@ -353,7 +354,7 @@ def extract_xlsx_to_sql(filename, sqlurl):
     }
 
     for sheetname in sheetnames:
-        print(sheetname)
+        print("%s :: %s" % (filename, sheetname))
         start = datetime.now()
         t = agate.Table.from_xlsx(filename,
                                   sheet=sheetname,
@@ -371,7 +372,7 @@ def extract_xlsx_to_sql(filename, sqlurl):
                  # chunk_size=1,
         )
         delta = datetime.now() - start
-        print("\t%d" % delta.seconds)
+        print("%s :: %s :: %d elapsed" % (filename, sheetname, delta.seconds))
 
 def extractor_command():
     """
@@ -410,9 +411,16 @@ def extractor_command():
             for name in os.listdir(input_dir):
                 file_paths.append(os.path.sep.join((input_dir, name)))
 
+    processes = {}
     for file_path in file_paths:
         print(file_path)
-        extract_xlsx_to_sql(file_path, env_db_string())
+        process = Process(target=extract_xlsx_to_sql, args=(file_path, env_db_string()))
+        processes[file_path] = process
+        process.start()
+
+    for file_path, process in processes.items():
+        print("waiting for %s" % file_path)
+        process.join()
 
     # for file_path in file_paths:
     #     extractor = None
