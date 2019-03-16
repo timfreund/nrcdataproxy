@@ -275,90 +275,18 @@ def extract_xlsx_to_sql(filename, sqlurl):
     # Many columns are sparsely populated: mostly blank, with maybe
     # a 1 or a 0 once in a while.  Agate will assume those are boolean
     # columns, but once in a while there'll be a number.
-    specified_types = {}
-    specified_types['CALLS'] = {
-        'RESPONSIBLE_ZIP': agate.Text(), # CY90 '-    '
-    }
-    specified_types['DERAILED_UNITS'] = {
-        'POSITION_IN_TRAIN': agate.Text(), # U
-    }
-    specified_types['INCIDENTS'] = {
-        'AIRCRAFT_HANGER': agate.Text(),
-        'BERTH_SLIP_NUMBER': agate.Text(),
-        'BRAKEMAN_TESTING': agate.Number(),
-        'CONDUCTOR_TESTING': agate.Number(),
-        'CR_BEGIN_DATE': agate.DateTime(),
-        'CR_END_DATE': agate.DateTime(),
-        'CR_CHANGE_DATE': agate.DateTime(),
-        'DATE_TIME_NORMAL_SERVICE': agate.DateTime(),
-        'ENGINEER_TESTING': agate.Number(),
-        'OTHER_EMPLOYEE_TESTING': agate.Number(),
-        'PASSENGER_HANDLING': agate.Text(),
-        'RCL_OPERATOR_TESTING': agate.Number(),
-        'SERVICE_DISRUPTION_TIME': agate.Number(),
-        'SIGNALMAN_TESTING': agate.Number(),
-        'TRAIN_DISPATCHER_TESTING': agate.Number(),
-        'TRAINMAN_TESTING': agate.Number(),
-        'TRANSIT_BUS_FLAG': agate.Text(), # CY10, YES
-        'UNKNOWN_TESTING': agate.Text(), # CY10, YES
-        'YARD_FOREMAN_TESTING': agate.Number(),
-    }
-    specified_types['INCIDENT_COMMONS'] = {
-        'INCIDENT_LOCATION': agate.Text(),
-        'LAT_QUAD': agate.Text(),
-        'LONG_QUAD': agate.Text(),
-        'LOCATION_ZIP': agate.Text(),
-    }
-    specified_types['INCIDENT_DETAILS'] = {
-        'AIR_CLOSURE_TIME': agate.Number(),
-        'AIR_CORRIDOR_CLOSED': agate.Text(),
-        'AIR_CORRIDOR_DESC': agate.Text(),
-        'ANY_FATALITIES': agate.Text(), # CY96, U
-        'ANY_INJURIES': agate.Text(), # CY96, U
-        'COMMUNITY_IMPACT': agate.Text(),
-        'EMPL_FATALITY': agate.Number(),
-        'ESTIMATED_DURATION_OF_RELEASE': agate.Text(), # CY14, on-going
-        'FIRE_EXTINGUISHED': agate.Text(), # CY96, U
-        'OCCUPANT_FATALITY': agate.Number(),
-        'OFFSHORE': agate.Text(), # CY08, U (unknown?)
-        'PASS_FATALITY': agate.Number(),
-        'RELEASE_RATE': agate.Text(), # CY15, UNK
-        'RELEASE_SECURED': agate.Text(), # CY15, UNK
-        'RADIUS_OF_EVACUATION': agate.Number(),
-        'ROAD_CLOSED': agate.Text(), # CY15, UNK
-        'TRACK_CLOSED': agate.Text(), # CY96, U
-        'TRACK_CLOSURE_TIME': agate.Number(), # CY99, 1
-        'WATERWAY_CLOSED': agate.Text(), # CY96, U
-        'WATERWAY_CLOSURE_TIME': agate.Text(), # CY96, U
-        'WATERWAY_CLOSURE_TIME': agate.Number(), # CY12
-    }
-    specified_types['MATERIAL_INVOLVED'] = {
-        'IF_REACHED_WATER': agate.Text(), # CY95 UNKNOWN
-    }
-    specified_types['MATERIAL_INV0LVED_CR'] = {
-        'CAS_NUMBER': agate.Text(), # CY97 000000-00-0
-        'UPPER_BOUNDS': agate.Text(), # CY05 UNKNOWN
-    }
-    specified_types['MOBILE_DETAILS'] = {
-        'AMOUNT_OF_CARGO_ON_BOARD': agate.Text(), # UNK 
-        'CARGO_CAPACITY': agate.Text(), # CY02 O instead of 0
-    }
-    specified_types['TRAINS_DETAIL'] = {
-        'NON_COMPLIANCE_WITH_HAZMAT': agate.Text(),
-    }
-    specified_types['VESSELS_DETAIL'] = {
-        'CARGO_CAPACITY': agate.Text(), # CY06 SEWAGE
-        'CARGO_ON_BOARD': agate.Text(), # CY06 SEWAGE
-        'FUEL_CAPACITY': agate.Text(), # CY03 110,000 (that comma...)
-        'FUEL_ON_BOARD': agate.Text(), # CY03 53,000 (that comma...)
-    }
+    #
+    # Since the data is spread across so many input files, we are ignoring
+    # the type testing capabilities all together and forcing everything
+    # to Text()
 
+    type_tester = agate.TypeTester(types=[agate.Text()])
     for sheetname in sheetnames:
         print("%s :: %s" % (filename, sheetname))
         start = datetime.now()
         t = agate.Table.from_xlsx(filename,
                                   sheet=sheetname,
-                                  column_types=specified_types.get(sheetname, {}))
+                                  column_types=type_tester)
         # we create a duplicate table with lowercase column names because
         # uppercase names require quoting in resulting SQL statements
         # and we lowercase the SQL table name for the same reason in the following
