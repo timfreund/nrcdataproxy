@@ -1,11 +1,11 @@
 from datetime import datetime, time
 from decimal import Decimal
-from multiprocessing import Process
 from optparse import OptionParser
 import agate
 import agateexcel
 import agatesql
 import mimetypes
+import multiprocessing
 import os
 import openpyxl
 import sys
@@ -340,26 +340,14 @@ def extractor_command():
                 if name.endswith('.xlsx'):
                     file_paths.append(os.path.sep.join((input_dir, name)))
 
-    processes = {}
-    for file_path in file_paths:
-        print(file_path)
-        process = Process(target=extract_xlsx_to_sql, args=(file_path, env_db_string()))
-        processes[file_path] = process
-        process.start()
+    with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
+        async_results = []
+        for file_path in file_paths:
+            async_results.append(pool.apply_async(extract_xlsx_to_sql,
+                                                  args=(file_path, env_db_string())))
 
-    for file_path, process in processes.items():
-        print("waiting for %s" % file_path)
-        process.join()
 
-    # for file_path in file_paths:
-    #     extractor = None
-    #     for extract_class in extractors:
-    #         if extract_class.mimetype == mimetypes.guess_type(file_path)[0]:
-    #             extractor = extract_class(file_path)
-                
-    #     if extractor is None:
-    #         print("No extractor available for %s" % file_path)
-    #     else:
-    #         extractor.extract_data(data_storage)
+        pool.close()
+        pool.join()
             
     print("Extracted data from NRC spreadsheets")
