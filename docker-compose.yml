@@ -17,5 +17,8 @@ services:
       - "5000:5000"
     volumes:
       - .:/usr/local/nrc
+      - nrc-data:/usr/local/nrc/data
     entrypoint: nrcdataproxy
 
+volumes:
+  nrc-data:

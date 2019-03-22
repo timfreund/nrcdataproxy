@@ -10,7 +10,7 @@ RUN groupadd -r nrc && \
 COPY . .
 RUN pip install --no-cache-dir -r ./requirements.txt
 RUN python setup.py develop
-RUN chown -R nrc:nrc /usr/local/nrc
+RUN mkdir -p /usr/local/nrc/data && chown -R nrc:nrc /usr/local/nrc
 
 USER nrc
 
