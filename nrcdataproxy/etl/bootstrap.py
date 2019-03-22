@@ -53,19 +53,19 @@ archives = {
 
 
 def download_year(output_dir, year):
-    # TODO: see if the file exists before we download
     # TODO: let users switch between the mirror and authoritative sources
-    print("Downloading %s" % year)
-    archive = urlopen("%s/%s" % (archive_sources['mirror'], archives[year]))
     destination_path = os.path.sep.join((output_dir,
                                          'archives',
                                         archives[year]))
     if os.path.exists(destination_path):
         print("%s already exists, skipping" % year)
-    else:
-        destination_file = open(destination_path, "wb")
-        destination_file.write(archive.read())
-        destination_file.close()
+        return
+
+    print("Downloading %s" % year)
+    archive = urlopen("%s/%s" % (archive_sources['mirror'], archives[year]))
+    destination_file = open(destination_path, "wb")
+    destination_file.write(archive.read())
+    destination_file.close()
 
 def spreadsheet_downloader():
     """
